@@ -1,0 +1,50 @@
+name:                rule-engine
+version:             0.1.0.0
+-- synopsis:
+-- description:
+homepage:            https://github.com/jbayardo/rule-engine#readme
+license:             BSD2
+license-file:        LICENSE
+author:              Julian Bayardo Spadafora
+maintainer:          julian@bayardo.info
+copyright:           2018 Julian Bayardo Spadafora
+cabal-version:       >=1.10
+extra-source-files:  README.md
+
+library
+  hs-source-dirs:      src
+  default-language:    Haskell2010
+  build-depends:
+    base >= 4.7 && < 5,
+    random,
+    containers,
+    mtl,
+    exceptions,
+    lens,
+    transformers,
+    recursion-schemes,
+    generic-deriving,
+    monad-loops,
+    conduit,
+    extra
+  default-extensions:
+    -- For convenience
+    NamedFieldPuns,
+    DeriveFunctor,
+    DeriveFoldable,
+    DeriveTraversable,
+    TupleSections,
+    -- For performance
+    BangPatterns,
+    -- For typing
+    ScopedTypeVariables,
+    -- For lenses
+    TemplateHaskell
+  other-modules:
+    Engine,
+    Engine.Execute,
+    Engine.Tree,
+    Engine.Rule,
+    Server,
+    Server.Statistics,
+    Server.Combinators
