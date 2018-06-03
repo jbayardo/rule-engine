@@ -47,4 +47,5 @@ library
     Engine.Rule,
     Server,
     Server.Statistics,
-    Server.Combinators
+    Server.Combinators,
+    Example

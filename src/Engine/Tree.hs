@@ -3,7 +3,7 @@
 
 module Engine.Tree where
 
-import qualified Data.Functor.Foldable.TH as R
+import qualified Data.Functor.Foldable.TH as F
 
 data Tree a
   = Node { value :: !a
@@ -12,7 +12,7 @@ data Tree a
   | Failure
   deriving (Functor, Foldable, Traversable, Show)
 
-R.makeBaseFunctor ''Tree
+F.makeBaseFunctor ''Tree
 
 from :: a -> Tree a -> a
 from d Failure = d
@@ -31,6 +31,9 @@ circular a = Node a (circular a) (circular a)
 deadend :: a -> Tree a
 deadend a = Node a Failure Failure
 
+deadendF :: a -> b -> TreeF a b
+deadendF a b = NodeF a b b
+
 transform :: (a -> a) -> Tree a -> Tree a
 transform f Failure = Failure
 transform f node@Node {value} = node {value = f value}
@@ -47,6 +50,10 @@ branch R = right
 conditional :: a -> Tree a -> Movement -> Tree a
 conditional x branch L = Node {value = x, left = branch, right = Failure}
 conditional x branch R = Node {value = x, left = Failure, right = branch}
+
+conditionalF :: a -> Tree b -> Movement -> TreeF a (Tree b)
+conditionalF x branch L = NodeF {valueF = x, leftF = branch, rightF = Failure}
+conditionalF x branch R = NodeF {valueF = x, leftF = Failure, rightF = branch}
 
 type Select a = Either (a, Tree a) (a, Tree a)
 

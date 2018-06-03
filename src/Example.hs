@@ -1,4 +1,4 @@
-module Main where
+module Example where
 
 import qualified Control.Lens as Lens
 import Control.Monad (replicateM)

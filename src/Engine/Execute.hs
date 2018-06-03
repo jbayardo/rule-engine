@@ -1,3 +1,5 @@
+{-# LANGUAGE FlexibleContexts #-}
+
 module Engine.Execute where
 
 import qualified Engine.Rule as R
@@ -5,10 +7,11 @@ import qualified Engine.Tree as T
 
 import Control.Exception
 import qualified Control.Lens as Lens
-import Control.Monad (liftM, when)
+import Control.Monad ((<=<), liftM, mapM, when)
 import Control.Monad.Catch (MonadCatch, MonadThrow, catch, throwM)
 import qualified Control.Monad.Trans.Class as Trans
 import qualified Control.Monad.Trans.State.Strict as StateT
+import qualified Data.Functor.Foldable as F
 
 data Callbacks m d = Callbacks
   -- This callback is called every time a rule is run, and given the results of
@@ -19,30 +22,33 @@ data Callbacks m d = Callbacks
   , unrecoverable :: m ()
   }
 
--- Builds a tree of rule execution results. This is basically just early stop
--- logic.
+anaM ::
+     (Monad m, F.Corecursive b, Traversable (F.Base b))
+  => (a -> m (F.Base b a))
+  -> a
+  -> m b
+anaM coalg = recurse
+  where
+    recurse = (return . F.embed) <=< mapM recurse <=< coalg
+
 execute ::
      (MonadCatch m)
   => Callbacks m d
   -> T.Tree (R.Rule m d)
   -> m (T.Tree (R.Execution d))
--- This case will only trigger when the tree is invalid. This means that a rule
--- goes into a Failure node.
-execute Callbacks {unrecoverable} T.Failure = do
-  unrecoverable
-  return T.Failure
-execute callback tree@T.Node {T.value = rule} = do
-  !execution <- R.apply rule
-  run callback execution
-  R.destruct
-    (\exception -> return $ T.deadend execution)
-    (\decision -> return $ T.deadend execution)
-    (\move
-      -- The rule execution is telling is us to keep on moving
-      -> do
-       !continuation <- execute callback $ T.branch move tree
-       return $ T.conditional execution continuation move)
-    execution
+execute Callbacks {unrecoverable, run} = anaM go
+  where
+    go T.Failure = unrecoverable >> return T.FailureF
+    go tree@T.Node {T.value = rule} = do
+      !execution <- R.apply rule
+      run execution
+      let endpoint = const $ T.deadendF execution T.Failure
+      return $
+        R.destruct
+          endpoint
+          endpoint
+          (\move -> T.conditionalF execution (T.branch move tree) move)
+          execution
 
 execute' :: (MonadCatch m) => T.Tree (R.Rule m d) -> m (T.Tree (R.Execution d))
 execute' =
